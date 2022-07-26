@@ -133,7 +133,44 @@ class ModuleMake extends Command
     private function createVueComponent(){}
     private function createView(){}
 
-    private function createApiController(){}
+    private function createApiController(){
+        $controller = Str::studly(class_basename($this->argument('name')));
+        $modelName = Str::singular(Str::studly(class_basename($this->argument('name'))));
+
+        $path = $this->getControllerPath($this->argument('name'));
+
+        if($this->alreadyExists($path)){
+            $this->error('Controller already exists!');
+        }
+        else {
+            $this->makeDirectory($path);
+
+            $stub = $this->get(base_path('sources/stubs/controller.model.api.stub'));
+
+            $stub = str_replace(
+                [
+                    'DummyNamespace',
+                    'DummyRootNamespace',
+                    'DummyClass'.
+                    'DummyFullModelClass',
+                    'DummyModelClass',
+                    'DummyModelVariable',
+                ],
+                [
+                    "App\\Modules\\".trim($this->argument('name')) . "\\Controllers",
+                    $this->laravel->getNamespace(),
+                    $controller.'Controller',
+                    "App\\Modules\\".trim($this->argument('name'))."\\Modules\\{$modelName}",
+                    $modelName,
+                    lcfirst(($modelName))
+                ],
+                $stub
+            );
+            $this->files->put($path, $stub);
+            $this->info('Controller created successfull');
+            //$this->updateModularConfig();
+        }
+    }
 
     private function getControllerPath($argument){
         $controller = Str::studly(class_basename($argument));
