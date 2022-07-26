@@ -4,9 +4,11 @@ namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
 use Illuminate\Support\Str;
+use Illuminate\Filesystem\Filesystem;
 
 class ModuleMake extends Command
 {
+    private $files;
     /**
      * The name and signature of the console command.
      *
@@ -26,9 +28,10 @@ class ModuleMake extends Command
      *
      * @return void
      */
-    public function __construct()
+    public function __construct(Filesystem $filesystem)
     {
         parent::__construct();
+        $this->files = $filesystem;
     }
 
     /**
@@ -86,13 +89,69 @@ class ModuleMake extends Command
         }catch(\Exception $e){
             $this->error($e->getMessage());
         }
-
-
     }
+
+    private function createController(){
+        $controller = Str::studly(class_basename($this->argument('name')));
+        $modelName = Str::singular(Str::studly(class_basename($this->argument('name'))));
+
+        $path = $this->getControllerPath($this->argument('name'));
+
+        if($this->alreadyExists($path)){
+            $this->error('Controller already exists!');
+        }
+        else {
+            $this->makeDirectory($path);
+
+            $stub = $this->get(base_path('sources/stubs/controller.model.api.stub'));
+
+            $stub = str_replace(
+                [
+                    'DummyNamespace',
+                    'DummyRootNamespace',
+                    'DummyClass'.
+                    'DummyFullModelClass',
+                    'DummyModelClass',
+                    'DummyModelVariable',
+                ],
+                [
+                    "App\\Modules\\".trim($this->argument('name')) . "\\Controllers",
+                    $this->laravel->getNamespace(),
+                    $controller.'Controller',
+                    "App\\Modules\\".trim($this->argument('name'))."\\Modules\\{$modelName}",
+                    $modelName,
+                    lcfirst(($modelName))
+                ],
+                $stub
+            );
+            $this->files->put($path, $stub);
+            $this->info('Controller created successfull');
+            //$this->updateModularConfig();
+        }
+    }
+
     private function createVueComponent(){}
     private function createView(){}
-    private function createController(){}
 
     private function createApiController(){}
+
+    private function getControllerPath($argument){
+        $controller = Str::studly(class_basename($argument));
+        return $this->laravel['path'] . '/Modules/' . str_replace('\\', '/', $argument) . "/Controllers/" . "{$controller}Controller.php";
+
+    }
+
+    private function getApiControllerPath($argument){
+        $controller = Str::studly(class_basename($argument));
+        return $this->laravel['path'] . '/Modules/' . str_replace('\\', '/', $argument) . "/Controllers/Api/" . "{$controller}Controller.php";
+    }
+
+    private function makeDirectory($path){
+        if(! $this->files->isDirectory(dirname($path))){
+            $this->files->makeDirectory(dirname($path), 0777, true, true );
+        }
+
+        return $path;
+    }
 
 }
