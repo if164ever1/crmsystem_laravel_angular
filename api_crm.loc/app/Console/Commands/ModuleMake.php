@@ -136,7 +136,7 @@ class ModuleMake extends Command
     }
 
     private function createVueComponent(){
-        $path = $this->getVueCompontnPath($this->argument('name'));
+        $path = $this->getVueComponentPath($this->argument('name'));
         $component = Str::studly(class_basename($this->argument('name')));
 
         if($this->alreadyExists($path)){
@@ -147,7 +147,7 @@ class ModuleMake extends Command
 
             $stub = $this->files->get(base_path('resources/stubs/vue.component.stub'));
 
-            $stub = str-str_replace([
+            $stub = str_replace([
                 'DummyClass',
             ],
             [
@@ -159,7 +159,34 @@ class ModuleMake extends Command
             $this->info('Vue component created successfully');
         }
     }
-    private function createView(){}
+    private function createView(){
+        $paths = $this->getViewPath($this->argument('name'));
+
+
+        foreach($paths as $path){
+            $view = Str::studly(class_basename($this->argument('name')));
+
+            if($this->alreadyExists($path)){
+                $this->error('View already exists');
+            }
+            else {
+                $this->makeDirectory($path);
+
+                $stub = $this->files->get(base_path('resources/stubs/view.stub'));
+
+                $stub = str_replace([
+                    '',
+                ],
+                [
+
+                ],
+                $stub
+            );
+            $this->files->put($path, $stub);
+            $this->info('View component created successfully');
+        }
+        }
+    }
 
     private function createApiController(){
         $controller = Str::studly(class_basename($this->argument('name')));
@@ -285,6 +312,22 @@ class ModuleMake extends Command
 
     private function alreadyExists($path) : bool {
         return $this->files->exists($path);
+    }
+
+    private function getVueComponentPath($name) : string{
+        return base_path('resources/js/components' . str_replace('\\', '/', $name).".vue");
+    }
+
+    private function getViewPath($name) {
+        $arrFiles = collect([
+            'create', 'edit', 'index', 'show'
+        ]);
+
+        $paths = $arrFiles->map(function($item) use ($name){
+            return base_path('resources/views/'.str_replace('\\', '/', $name). '/' . $item. ".blade.php");
+        });
+
+        return $paths;
     }
 
 }
