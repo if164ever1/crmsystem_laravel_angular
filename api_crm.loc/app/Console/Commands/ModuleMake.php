@@ -135,7 +135,30 @@ class ModuleMake extends Command
         $this->createRoutes($controller, $modelName);
     }
 
-    private function createVueComponent(){}
+    private function createVueComponent(){
+        $path = $this->getVueCompontnPath($this->argument('name'));
+        $component = Str::studly(class_basename($this->argument('name')));
+
+        if($this->alreadyExists($path)){
+            $this->error('Vue component already exists');
+        }
+        else {
+            $this->makeDirectory($path);
+
+            $stub = $this->files->get(base_path('resources/stubs/vue.component.stub'));
+
+            $stub = str-str_replace([
+                'DummyClass',
+            ],
+            [
+                $component
+            ],
+            $stub
+        );
+            $this->files->put($path, $stub);
+            $this->info('Vue component created successfully');
+        }
+    }
     private function createView(){}
 
     private function createApiController(){
